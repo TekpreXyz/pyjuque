@@ -4,6 +4,8 @@ import random
 import plotly.graph_objs as go
 from plotly.offline import plot
 
+import pyjuque
+
 """
     This file contains all the tools used for plotting data.
 
@@ -347,7 +349,8 @@ def PlotData(df,
     fig = go.Figure(data=data, layout=layout)
 
     if save_plot or show_plot:
-        file_path: str = os.path.abspath('graphs')
-        plot(fig, filename=os.path.join(file_path, plot_title + '.html'), auto_open=show_plot)
-
+        file_path = os.path.abspath('graphs')
+        # seems that we have problem here
+        # plot(fig, filename=os.path.join(file_path, plot_title + '.html'), auto_open=show_plot)
+        plot(fig, auto_open=show_plot)
     return fig
