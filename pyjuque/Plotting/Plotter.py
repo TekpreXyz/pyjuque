@@ -1,10 +1,8 @@
-import pandas as pd
-import requests
-import json
 import os
+import random
+
 import plotly.graph_objs as go
 from plotly.offline import plot
-import random
 
 """
     This file contains all the tools used for plotting data.
@@ -17,20 +15,24 @@ import random
     and how to style it. Modular is the aim.
 """
 
+
 # TI & TA
-def GetPlotData(df, 
-    add_volume:bool=True,
-    add_candles:bool=True,
-    buy_signals:bool or list=False,
-    sell_signals:bool or list=False,
-    signals:bool or list=False,
-    regimes_number=None,
-    plot_indicators=[],
-    trend_points=False,
-    trends=False):
+def GetPlotData(df,
+                add_volume: bool = True,
+                add_candles: bool = True,
+                buy_signals: bool or list = False,
+                sell_signals: bool or list = False,
+                signals: bool or list = False,
+                regimes_number=None,
+                plot_indicators=None,
+                trend_points=False,
+                trends=False):
     """ Generates the plotly traces to be plotted. """
 
-    data=[]
+    global regime_start, signal
+    if plot_indicators is None:
+        plot_indicators = []
+    data = []
 
     if regimes_number != None:
         if df.__contains__('regime'):
@@ -55,47 +57,46 @@ def GetPlotData(df,
                     regime_end = row
                     data.append(
                         go.Scatter(
-                            x=[regime_start['time'],regime_end['time']],
+                            x=[regime_start['time'], regime_end['time']],
                             y=[30000, 30000],
-                            line = dict(
-                                color = (r_colors[regime_start['regime']])
+                            line=dict(
+                                color=(r_colors[regime_start['regime']])
                             ),
                             showlegend=False,
-                            name = 'Regime {}'.format(regime_start['regime']),
+                            name='Regime {}'.format(regime_start['regime']),
                             fill='tozeroy'))
 
                     regime_start = regime_end
 
-
     if add_volume:
         volume = go.Bar(
-            x = df['time'],	
-            y = df['volume'], 
-            xaxis="x", 
-            yaxis="y2", 
-            width = 400000,
-            name = "Volume")
+            x=df['time'],
+            y=df['volume'],
+            xaxis="x",
+            yaxis="y2",
+            width=400000,
+            name="Volume")
 
         data.append(volume)
 
     if add_candles:
         candle = go.Candlestick(
-            x = df['time'],
-            open = df['open'],
-            close = df['close'],
-            high = df['high'],
-            low = df['low'],
-            name = "Candlesticks")
+            x=df['time'],
+            open=df['open'],
+            close=df['close'],
+            high=df['high'],
+            low=df['low'],
+            name="Candlesticks")
         data.append(candle)
     else:
-        price = go.Scatter( 
-            x = df['time'],
-            y = df['close'], 
-            name = 'Price',
-            line = dict(color = 'black'))
+        price = go.Scatter(
+            x=df['time'],
+            y=df['close'],
+            name='Price',
+            line=dict(color='black'))
 
         data.append(price)
-    
+
     for ind in plot_indicators:
         if df.__contains__(ind['name']):
             if ind.get('showlegend', None) is None:
@@ -103,7 +104,7 @@ def GetPlotData(df,
             if ind.get('xvalue', None) is None:
                 ind['xvalue'] = 'time'
             if ind.get('color', None) is None:
-                ind['color'] = None # 'rgba(102, 207, 255, 50)'
+                ind['color'] = None  # 'rgba(102, 207, 255, 50)'
             if ind.get('yaxis', None) is None:
                 ind['yaxis'] = 'y'
             if ind.get('xaxis', None) is None:
@@ -119,38 +120,38 @@ def GetPlotData(df,
 
             if ind['type'] == 'bar':
                 trace = go.Bar(
-                    x = df[ind['xvalue']], 
-                    y = df[ind['name']], 
-                    name = ind['title'],
-                    xaxis = ind['xaxis'], 
-                    yaxis = ind['yaxis'], 
-                    marker_color = ind['color'], 
+                    x=df[ind['xvalue']],
+                    y=df[ind['name']],
+                    name=ind['title'],
+                    xaxis=ind['xaxis'],
+                    yaxis=ind['yaxis'],
+                    marker_color=ind['color'],
                     showlegend=ind['showlegend'],
-                    width = ind['width'],
-                marker = dict(color = ind['color']))
+                    width=ind['width'],
+                    marker=dict(color=ind['color']))
             else:
-                trace = go.Scatter( 
-                    x = df[ind['xvalue']],
-                    y = df[ind['name']], 
-                    name = ind['title'],
-                    mode = ind['mode'], 
-                    xaxis = ind['xaxis'], 
-                    yaxis = ind['yaxis'], 
-                    fill = ind['fill'], 
+                trace = go.Scatter(
+                    x=df[ind['xvalue']],
+                    y=df[ind['name']],
+                    name=ind['title'],
+                    mode=ind['mode'],
+                    xaxis=ind['xaxis'],
+                    yaxis=ind['yaxis'],
+                    fill=ind['fill'],
                     showlegend=ind['showlegend'],
-                    line = dict(color = ind['color']))
+                    line=dict(color=ind['color']))
 
             data.append(trace)
 
     if trend_points:
-        mins = go.Scatter( x = df['time'], 	y = df['min'], name = "Min Points",
-            line = dict(color = ('rgba(255, 100, 100, 255)')),
-            mode = "markers",)
+        mins = go.Scatter(x=df['time'], y=df['min'], name="Min Points",
+                          line=dict(color=('rgba(255, 100, 100, 255)')),
+                          mode="markers", )
         data.append(mins)
 
-        maxs = go.Scatter( x = df['time'], y = df['max'], name = "Max Points",
-                line = dict(color = ('rgba(100, 255, 100, 255)')),
-                mode = "markers",)
+        maxs = go.Scatter(x=df['time'], y=df['max'], name="Max Points",
+                          line=dict(color=('rgba(100, 255, 100, 255)')),
+                          mode="markers", )
         data.append(maxs)
 
     if signals:
@@ -160,14 +161,13 @@ def GetPlotData(df,
                 if len(signal["points"][0]) > 2:
                     size_multiplier = [z[2] for z in signal["points"]]
             scat = go.Scatter(
-                x = [item[0] for item in signal['points']],
-                y = [item[1] for item in signal['points']],
-                name = signal['name'],
-                mode = "markers",
-                marker_size = [13 * s for s in size_multiplier]  
+                x=[item[0] for item in signal['points']],
+                y=[item[1] for item in signal['points']],
+                name=signal['name'],
+                mode="markers",
+                marker_size=[13 * s for s in size_multiplier]
             )
             data.append(scat)
-
 
     if buy_signals:
         size_multiplier = [1 for z in signal["points"]]
@@ -175,14 +175,14 @@ def GetPlotData(df,
             if len(signal["points"][0]) > 2:
                 size_multiplier = [z[2] for z in signal["points"]]
         buys = go.Scatter(
-            x = [item[0] for item in buy_signals],
-            y = [item[1] for item in buy_signals],
+            x=[item[0] for item in buy_signals],
+            y=[item[1] for item in buy_signals],
             # marker=dict(
             # 	color = [item[2] for item in buy_signals]
             # ),
-            name = "Buy Signals",
-            mode = "markers",
-            marker_size = [13 * s for s in size_multiplier]  
+            name="Buy Signals",
+            mode="markers",
+            marker_size=[13 * s for s in size_multiplier]
         )
         data.append(buys)
 
@@ -192,30 +192,31 @@ def GetPlotData(df,
             if len(signal["points"][0]) > 2:
                 size_multiplier = [z[2] for z in signal["points"]]
         sells = go.Scatter(
-            x = [item[0] for item in sell_signals],
-            y = [item[1] for item in sell_signals],
-            name = "Sell Signals",
-            mode = "markers",
-            marker_size = [13 * s for s in size_multiplier]  
+            x=[item[0] for item in sell_signals],
+            y=[item[1] for item in sell_signals],
+            name="Sell Signals",
+            mode="markers",
+            marker_size=[13 * s for s in size_multiplier]
         )
         data.append(sells)
-    
+
     return data
 
+
 def PlotData(df,
-    add_candles:bool=True,
-    add_volume:bool=True,
-    buy_signals:bool or list=False,
-    sell_signals:bool or list=False,
-    signals:bool or list=False,
-    trend_points=False,
-    plot_indicators=[],
-    plot_shapes=False,
-    regimes_number=None,
-    trends=False,
-    save_plot=False,
-    show_plot=False,
-    plot_title:str="Unnamed"):
+             add_candles: bool = True,
+             add_volume: bool = True,
+             buy_signals: bool or list = False,
+             sell_signals: bool or list = False,
+             signals: bool or list = False,
+             trend_points=False,
+             plot_indicators=None,
+             plot_shapes=False,
+             regimes_number=None,
+             trends=False,
+             save_plot=False,
+             show_plot=False,
+             plot_title: str = "Unnamed"):
     '''
     Creates a plotly plot based on the options provided - which can be displayed
     in a front-end or saved as a standalone webpage.
@@ -230,6 +231,8 @@ def PlotData(df,
 
     '''
 
+    if plot_indicators is None:
+        plot_indicators = []
     data = GetPlotData(
         df,
         add_candles=add_candles,
@@ -254,13 +257,13 @@ def PlotData(df,
             'rangeslider': {
                 'visible': False,
                 'yaxis': {
-                    'rangemode':'match'
+                    'rangemode': 'match'
                 }
-            }, 
-            "showticklabels":False,
+            },
+            "showticklabels": False,
             'type': 'date'},
     )
-    
+
     y2, y3 = False, False
     if add_volume:
         y2 = True
@@ -276,21 +279,21 @@ def PlotData(df,
             yaxis={
                 "domain": [0.3, 1],
                 # "title": "Price", 
-                "fixedrange":False,
+                "fixedrange": False,
                 "ticks": '',
-                "showticklabels":False,
+                "showticklabels": False,
             })
         layout.update(
             yaxis2=dict(
-                domain = [0.15, 0.29],
-                side = 'right',
-                showticklabels = False,
+                domain=[0.15, 0.29],
+                side='right',
+                showticklabels=False,
                 # title  = "Volume"
             ))
         layout.update(
             yaxis3=dict(
-                domain = [0, 0.15],
-                showticklabels = False,
+                domain=[0, 0.15],
+                showticklabels=False,
                 # title=""
             ))
     elif y2:
@@ -298,41 +301,41 @@ def PlotData(df,
             yaxis={
                 "domain": [0.25, 1],
                 # "title": "Price", 
-                "fixedrange":False,
+                "fixedrange": False,
                 "ticks": '',
-                "showticklabels":False},
+                "showticklabels": False},
         )
         layout.update(
             yaxis2=dict(
-                domain = [0, 0.24],
-                side = 'right',
-                showticklabels = False,
+                domain=[0, 0.24],
+                side='right',
+                showticklabels=False,
                 # title  = "Volume"
-                ))
+            ))
     elif y3:
         layout.update(
             yaxis={
                 "domain": [0.25, 1],
                 # "title": "Price", 
-                "fixedrange":False,
+                "fixedrange": False,
                 "ticks": '',
-                "showticklabels":False},
+                "showticklabels": False},
         )
         layout.update(
             yaxis3=dict(
-                domain = [0, 0.24],
-                showticklabels = False,
+                domain=[0, 0.24],
+                showticklabels=False,
                 # ticks="",
                 # title=""
-                ))
+            ))
     else:
         layout.update(
             yaxis={
                 "domain": [0.1, 1],
                 # "title": "Price", 
-                "fixedrange":False,
+                "fixedrange": False,
                 "ticks": '',
-                "showticklabels":False},
+                "showticklabels": False},
         )
 
     if trends:
@@ -341,10 +344,10 @@ def PlotData(df,
         layout.update(shapes=layout['shapes'].__add__(tuple(plot_shapes)))
 
     # style and display
-    fig = go.Figure(data = data, layout = layout)
+    fig = go.Figure(data=data, layout=layout)
 
     if save_plot or show_plot:
-        file_path = os.path.abspath('graphs')
-        plot(fig, filename=os.path.join(file_path, plot_title+'.html'), auto_open=show_plot)
+        file_path: str = os.path.abspath('graphs')
+        plot(fig, filename=os.path.join(file_path, plot_title + '.html'), auto_open=show_plot)
 
     return fig
