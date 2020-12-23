@@ -9,16 +9,20 @@ sys.path.append(root_path)
 from pyjuque.Plotting.Plotter import PlotData
 from pyjuque.Exchanges.Binance import Binance
 from pyjuque.Strategies.BaseStrategy import Strategy
-from examples.pinescript_indicators import rsx_momentum_exhaustion
+# from examples.pinescript_indicators import rsx_momentum_exhaustion
 
 
 class CustomIndicatorStrategy(Strategy):
 
-    def __init__(self,
-                 mfi_length=14,
-                 ob_level=70,
-                 os_level=30):
+    def __init__(self, mfi_length=14, ob_level=70, os_level=30):
+        """
+
+        :param mfi_length:
+        :param ob_level:
+        :param os_level:
+        """
         # Minimum period needed for indicators to be calculated
+        super().__init__()
         self.minimum_period = 100
         self.mfi_length = mfi_length
         self.ob_level = ob_level
@@ -28,7 +32,7 @@ class CustomIndicatorStrategy(Strategy):
     def chooseIndicators(self):
         self.indicators = [
             dict(
-                indicator_function=rsx_momentum_exhaustion,
+                # indicator_function=rsx_momentum_exhaustion,
                 col_name=['rsx', 'rsx_me_ob', 'rsx_me_os'],
                 mfi_length=self.mfi_length,
                 ob_level=self.ob_level,
@@ -45,10 +49,12 @@ class CustomIndicatorStrategy(Strategy):
 
 if __name__ == '__main__':
     exchange = Binance()
-    df = exchange.getSymbolKlines(symbol="ETHUSDT", interval="5m", limit=4000)
+    df = exchange.getSymbolKlines(symbol="BTCUSDT", interval="1m", limit=100)
 
     strategy = CustomIndicatorStrategy()
+    # we have a problem here :X
     strategy.setUp(df)
+
 
     length = len(df['close'])
     longs = [(strategy.df['time'][i], strategy.df['close'][i])
